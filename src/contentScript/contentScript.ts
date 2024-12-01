@@ -36,45 +36,6 @@ async function getNewText(
   );
 
   return should;
-
-  /*if (!should) {
-    return "";
-  }
-
-  const htmlInput = elementData.element.innerHTML;
-
-  const asMkDown = getNodeMarkDownInstance().translate(htmlInput);
-
-  const prompt = `${previousText}
-
-<======>
-${asMkDown}
-<======>
-
-${nextText}`;
-
-  //  const text: string = await session.prompt(prompt);
-
-  //console.log(`End ${(Date.now() - startDate) / 1000}`);
-
-  //const output = await marked(text);
-
-  const options = {
-    sharedContext: "This is a webpage",
-    type: "tl;dr",
-    format: "plain-text",
-    length: "short",
-  };
-
-  const summarizer = await (self as any).ai.summarizer.create(options);
-
-  const text = await summarizer.summarize(asMkDown, {
-    context: `This text is part of a larger page, it needs to be summarized without including any of the information present in this text:
-${previousText}
-${nextText}`,
-  });
-
-  return text;*/
 }
 
 function replaceTextContent(newText: string, textNodes: ChildNode[]) {
@@ -158,12 +119,6 @@ async function articleTreeReducer(
     }
 
     return [...acum, entry];
-
-    /*replaceTextContent(newText, entry.textNodes);
-    return [
-      ...acum,
-      { element, content: getCleanTextFromElement(element), textNodes },
-    ];*/
   } catch (error) {
     return [...acum, { element, content: entry.content, textNodes }];
   }
@@ -208,7 +163,6 @@ function extractContentFromArticle(article: HTMLElement) {
 
   const container = document.createElement("div");
   container.appendChild(clonedArticle);
-  //return getNodeMarkDownInstance().translate(container.innerHTML);
   return getCleanTextFromElement(container);
 }
 
