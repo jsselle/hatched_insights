@@ -1,0 +1,16 @@
+.hatched-insights-chicken-reader {
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translate(50%, -50%);
+  animation: move-the-chicken-by-30 2s infinite alternate;
+}
+
+@keyframes move-the-chicken-by-30 {
+  from {
+    transform: translate(50%, -50%);
+  }
+  to {
+    transform: translate(calc(50% + 30px), -50%);
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "Hatched Insights",
+  "version": "1.0",
+  "description": "Freshly hatched, ready-to-go information.",
+  "permissions": [
+    "contextMenus",
+    "activeTab",
+    "tabs",
+    "scripting",
+    "aiLanguageModelOriginTrial",
+    "storage",
+    "sidePanel",
+    "scripting"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["static/icon48.png", "static/animations.css"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "static/icon16.png",
+    "48": "static/icon48.png",
+    "128": "static/icon128.png"
+  },
+  "action": {
+    "default_title": "Open Hatched Insights",
+    "default_popup": "/pages/popup.html",
+    "default_icon": {
+      "16": "static/icon16.png",
+      "48": "static/icon48.png",
+      "128": "static/icon128.png"
+    }
+  },
+  "side_panel": {
+    "default_path": "/pages/index.html",
+    "default_title": "Open Hatched Insights"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["contentScript.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
