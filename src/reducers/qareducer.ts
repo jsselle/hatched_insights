@@ -62,6 +62,7 @@ const handlers: Record<
   update_answer(oldState: QAndAState, action: UpdateAnswerAction) {
     return {
       ...oldState,
+      loading: false,
       is_full_answer: true,
       answer: action.payload,
     };
@@ -69,6 +70,7 @@ const handlers: Record<
   update_answer_chunk(oldState: QAndAState, action: UpdateAnswerChunkAction) {
     return {
       ...oldState,
+      is_full_answer: false,
       loading: false,
       answer: `${oldState.answer}${action.payload}`,
     };

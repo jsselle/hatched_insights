@@ -16,8 +16,11 @@ function release() {
   return new Promise(handler);
 }
 
-function returnLargestElement(prev: HTMLElement, current: HTMLElement) {
-  if (prev.textContent!.trim().length > current.textContent!.trim().length) {
+function returnLargestElement(prev: HTMLElement | null, current: HTMLElement) {
+  if (
+    prev &&
+    prev.textContent!.trim().length > current.textContent!.trim().length
+  ) {
     return prev;
   }
 
@@ -150,7 +153,11 @@ function getMainArticle() {
   //@ts-ignore
   const articles: HTMLElement[] = ARTICLE_SELECTORS.reduce(findReducer, []);
 
-  const largestArticle = articles.reduce(returnLargestElement);
+  if (articles.length === 0) {
+    return null;
+  }
+
+  const largestArticle = articles.reduce(returnLargestElement, null);
   return largestArticle;
 }
 
@@ -164,6 +171,55 @@ function extractContentFromArticle(article: HTMLElement) {
   const container = document.createElement("div");
   container.appendChild(clonedArticle);
   return getCleanTextFromElement(container);
+}
+
+function renderEntries(acum: string, entry: [string, any]): string {
+  const [key, value] = entry;
+
+  return renderAny(
+    `${acum}
+${key}: `,
+    value
+  );
+}
+
+function renderObject(json: object): string {
+  return Object.entries(json).reduce(renderEntries, "");
+}
+
+function renderArray(array: any[]): string {
+  return array.reduce(renderAny, "");
+}
+
+function renderAny(acum: string, any: any): string {
+  if (Array.isArray(any)) {
+    return `${acum}
+${renderArray(any)}`;
+  }
+
+  if (typeof any === "object") {
+    return `${acum}
+${renderObject(any)}`;
+  }
+
+  return `${acum}
+${any}`;
+}
+
+function ldJsonRenderReducer(acum: string, node: HTMLElement) {
+  let json;
+
+  try {
+    json = JSON.parse(node.textContent || "{}");
+  } catch {
+    return acum;
+  }
+
+  return `${acum}${renderObject(json)}`;
+}
+
+function renderLdJson(nodes: HTMLElement[]) {
+  return nodes.reduce(ldJsonRenderReducer, "");
 }
 
 function onMessage(
@@ -180,13 +236,27 @@ function onMessage(
 
   if (message.action === ContentScriptMessageNames.extract_content) {
     const largestArticle = getMainArticle();
-    if (!largestArticle) {
+    if (largestArticle) {
+      const content = extractContentFromArticle(largestArticle);
+
+      sendResponse(content);
+
       return;
     }
 
-    const content = extractContentFromArticle(largestArticle);
+    const ldJson = Array.from(
+      document.querySelectorAll(`script[type="application/ld+json"]`)
+    ) as HTMLElement[];
 
-    sendResponse(content);
+    if (ldJson.length > 0) {
+      const content = renderLdJson(ldJson);
+      sendResponse(content);
+      return;
+    }
+
+    sendResponse(
+      "We could not find the content of the page, apologize to the user and tell them that we do not support this website yet."
+    );
   }
 }
 
