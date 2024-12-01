@@ -1,9 +1,6 @@
 let TOKEN_COUNTER_INSTANCE: any;
-const MAX_TOKENS = 2000;
-const DESIRED_TOKENS = 1500;
-
-const KB = 1024;
-const OVERLAP_SIZE = KB;
+const MAX_TOKENS = 824;
+const MAX_OVERLAP_OF_TOKENS = 200;
 
 async function getTokenCounter() {
   return (self as any).ai.languageModel.create();
@@ -22,30 +19,27 @@ const NEGATIVE = ` respond with:
 const NEGATIVE_ANSWER = `i cannot answer that`;
 const NEGATIVE_ANSWER_SIZE = NEGATIVE_ANSWER.length;
 
-function windowPaneContent(inputString: string, chunkSize: number): string[] {
-  const inputLength = inputString.length;
+function windowPaneContent(
+  inputString: string,
+  chunkSize: number,
+  overlapSize: number
+): string[] {
+  const chunks = [];
+  let start = 0;
 
-  const totalChunks = Math.ceil(
-    (inputLength + OVERLAP_SIZE) / (chunkSize - OVERLAP_SIZE)
-  );
-  function chunker(_: unknown, index: number) {
-    const startIndex = index * (chunkSize - OVERLAP_SIZE);
-    const endIndex = Math.min(startIndex + chunkSize, inputLength);
+  while (start < inputString.length) {
+    // End index includes overlap if the next chunk exists
+    const end = Math.min(start + chunkSize, inputString.length);
 
-    let chunk = inputString.slice(startIndex, endIndex);
+    // Extract current chunk and adjust for overlap
+    const chunk = inputString.slice(Math.max(0, start - overlapSize), end);
+    chunks.push(chunk);
 
-    if (index > 0) {
-      const overlap = inputString.slice(
-        Math.max(0, startIndex - OVERLAP_SIZE),
-        startIndex
-      );
-      chunk = overlap + chunk.slice(overlap.length);
-    }
-
-    return chunk;
+    // Move the window forward, accounting for overlap
+    start += chunkSize - overlapSize;
   }
 
-  return Array.from({ length: totalChunks }, chunker);
+  return chunks;
 }
 
 type StreamTokenCallback = (chunk: string) => void;
@@ -63,13 +57,12 @@ export async function getAnswerFor(
   const promptSize = data.length;
 
   let corpus;
-  if (tokens > MAX_TOKENS) {
+  if (tokens < MAX_TOKENS) {
     corpus = [data];
   } else {
-    corpus = windowPaneContent(
-      data,
-      (DESIRED_TOKENS * promptSize) / MAX_TOKENS
-    );
+    const chunkSize = (MAX_TOKENS * promptSize) / tokens;
+    const overlapSize = (MAX_OVERLAP_OF_TOKENS * promptSize) / tokens;
+    corpus = windowPaneContent(data, chunkSize, overlapSize);
   }
 
   async function tryToAnswerReducer(
@@ -151,8 +144,9 @@ Question: ${question}`;
         if (!isGoodAnswer) {
           if (result.toLocaleLowerCase().startsWith(NEGATIVE_ANSWER)) {
             controller.abort();
+          } else {
+            isGoodAnswer = result.length > NEGATIVE_ANSWER_SIZE;
           }
-          isGoodAnswer = result.length > NEGATIVE_ANSWER_SIZE;
         }
 
         previousChunk = chunk;
