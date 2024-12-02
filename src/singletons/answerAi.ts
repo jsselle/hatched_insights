@@ -1,12 +1,16 @@
+import { getAI } from "../utils/aiSource";
+
 let TOKEN_COUNTER_INSTANCE: any;
 const MAX_TOKENS = 824;
 const MAX_OVERLAP_OF_TOKENS = 200;
 
 async function getTokenCounter() {
-  return (self as any).ai.languageModel.create();
+  const ai = getAI();
+
+  return ai.languageModel.create();
 
   if (!TOKEN_COUNTER_INSTANCE) {
-    TOKEN_COUNTER_INSTANCE = await (self as any).ai.languageModel.create();
+    TOKEN_COUNTER_INSTANCE = await ai.languageModel.create();
   }
 
   return TOKEN_COUNTER_INSTANCE.clone();
@@ -85,8 +89,9 @@ export async function getAnswerFor(
     }
 
     const isLast = index === allChunks.length - 1;
+    const ai = getAI();
 
-    const session = await (self as any).ai.languageModel.create({
+    const session = await ai.languageModel.create({
       initialPrompts: [
         {
           role: "system",

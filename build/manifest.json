@@ -13,6 +13,10 @@
     "sidePanel",
     "scripting"
   ],
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAm0619Ad5Vdt80lucxXioW3KxuVZz2VsPf8UY2M/ImaRoeWqYDUDnu1guMps7aCtYwxY4xmJNnv2JIzopYpeUw53h0td8hau5rtOEDp6COMHVCi1CLhk6k9M6zLPeTV63YlN6uXDoBmPDEyGD3fqPnFLnW87mtxzDKKiXTO2HCDkIPyzRRcJ++QiIlcEIGMb/xvNmc0T3XcutYUeTkbgA9Jw6yYLaLvXbl4X1tokagj/C+nTsT8xDp/QwoTY8hwsOAaWk7uGbSs/5dhxfPz8jUQhBoAKwpIujJOUrptHvnDnzyaNgGfwcVPZbeQitQLS5IiT16iAwSrnsMQhyYTXKywIDAQAB",
+  "trial_tokens": [
+    "AqDdbUewr1zahabhlTwcNMywz2zVAn4gkCu//6LLt11KXemj5xbySzqpL6WokS7SmzwL5/SIGIU9yaRROMYp6gwAAAB4eyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vZ21sbWVka2pmbmtoYm9wcHBobWRhbm5va2NwZ2dwaGgiLCJmZWF0dXJlIjoiQUlQcm9tcHRBUElGb3JFeHRlbnNpb24iLCJleHBpcnkiOjE3NjA0ODYzOTl9"
+  ],
   "web_accessible_resources": [
     {
       "resources": ["static/icon48.png", "static/animations.css"],

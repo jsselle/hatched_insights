@@ -1,4 +1,5 @@
 import { ContentScriptMessageNames } from "../contentScript/messages";
+import { getAI } from "../utils/aiSource";
 import { PortNames, TabChangedAction, TabListenerActionNames } from "./types";
 
 function setUpUIUX() {
@@ -14,11 +15,14 @@ function setUpUIUX() {
 }
 
 async function addItemIfPossible() {
-  if (!("ai" in self)) {
+  const ai = getAI();
+
+  if (!ai) {
     return;
   }
+
   try {
-    const capabilities = await (self as any).ai.languageModel.capabilities();
+    const capabilities = await ai.languageModel.capabilities();
 
     const { available } = capabilities;
 

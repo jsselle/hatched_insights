@@ -1,8 +1,12 @@
+import { getAI } from "../utils/aiSource";
+
 let INSTANCE: any;
 
 async function getInstance() {
   if (!INSTANCE) {
-    INSTANCE = await (window as any).ai.languageModel.create({
+    const ai = getAI();
+
+    INSTANCE = await ai.languageModel.create({
       initialPrompts: [
         {
           role: "system",
