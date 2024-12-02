@@ -15,18 +15,6 @@ function release() {
   }
   return new Promise(handler);
 }
-
-function returnLargestElement(prev: HTMLElement | null, current: HTMLElement) {
-  if (
-    prev &&
-    prev.textContent!.trim().length > current.textContent!.trim().length
-  ) {
-    return prev;
-  }
-
-  return current;
-}
-
 async function getNewText(
   previousText: string,
   elementData: SummarizationElementStructure,
@@ -109,7 +97,6 @@ async function articleTreeReducer(
     await release();
 
     if (!keepIt) {
-      console.log(element, element.textContent);
       replaceTextContent("", entry.textNodes);
       return [
         ...acum,
@@ -141,23 +128,40 @@ async function optimizeArticle(article: HTMLElement) {
 
 const ARTICLE_SELECTORS = ["main > article", "main article", "article"];
 
+function largestArticleReducer(prev: HTMLElement | null, current: HTMLElement) {
+  const prevLength = (prev && getCleanTextFromElement(prev)) || "";
+  const currentLength = getCleanTextFromElement(current);
+
+  const currentWordLength = currentLength.split(" ").length;
+
+  if (currentWordLength > 200 && currentLength.length > prevLength.length) {
+    return current;
+  }
+
+  return prev;
+}
+
 function getMainArticle() {
   function findReducer(prev: HTMLElement[], selector: string) {
     if (prev.length > 0) {
       return prev;
     }
 
-    return Array.from(document.querySelectorAll(selector));
+    return [
+      ...prev,
+      ...(Array.from(document.querySelectorAll(selector)) as HTMLElement[]),
+    ];
   }
 
-  //@ts-ignore
-  const articles: HTMLElement[] = ARTICLE_SELECTORS.reduce(findReducer, []);
+  const foundArticles: HTMLElement[] = ARTICLE_SELECTORS.reduce(
+    findReducer,
+    []
+  );
 
-  if (articles.length === 0) {
-    return null;
-  }
+  const articles: HTMLElement[] = Array.from(new Set(foundArticles));
 
-  const largestArticle = articles.reduce(returnLargestElement, null);
+  const largestArticle = articles.reduce(largestArticleReducer, null);
+
   return largestArticle;
 }
 
@@ -229,6 +233,7 @@ function onMessage(
 ) {
   if (message.action === ContentScriptMessageNames.optimize_article) {
     const largestArticle = getMainArticle();
+
     if (largestArticle) {
       optimizeArticle(largestArticle);
     }
@@ -250,6 +255,18 @@ function onMessage(
 
     if (ldJson.length > 0) {
       const content = renderLdJson(ldJson);
+
+      if (content.length > 2000) {
+        sendResponse(content);
+        return;
+      }
+    }
+
+    const main = document.querySelector("main");
+
+    if (main) {
+      const content = extractContentFromArticle(main);
+
       sendResponse(content);
       return;
     }
