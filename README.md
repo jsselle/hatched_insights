@@ -48,3 +48,11 @@ We initially aimed for rich markdown inputs and outputs, but the results weren�
 ### 3. **Token Counting**
 
 Understanding and optimizing token usage was harder than expected. Our expectations from other libraries led to mismatches, and we didn’t allocate enough resources to benchmark it properly.
+
+# ⚙ How to run it
+
+- Go to chrome://extensions/
+- Enable developer mode
+- Click on "load unpacked"
+- Select the build folder
+- That's it!
