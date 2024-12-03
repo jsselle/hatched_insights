@@ -69,7 +69,7 @@ function sendMessageAndGetResponse<T>(
     function onResponse(response: T) {
       clearTimeout(timeout);
       if (chrome.runtime.lastError) {
-        console.log(chrome.runtime.lastError, response);
+        console.log("last errorr", chrome.runtime.lastError);
         reject(new MessageSendError("Error sending message"));
       } else {
         resolve(response);
@@ -87,8 +87,59 @@ function sendMessageAndGetResponse<T>(
   return new Promise(handler);
 }
 
+function ensureTabIsReady(activeTab: chrome.tabs.Tab) {
+  function handler(
+    resolve: (value: void) => void,
+    reject: (error: KnownError) => void
+  ) {
+    let timeout: number | undefined;
+
+    function onInjectionResult(
+      _results: chrome.scripting.InjectionResult<any>[]
+    ) {
+      if (chrome.runtime.lastError) {
+        console.log("last error", chrome.runtime.lastError);
+        reject(new MessageSendError("Error sending message"));
+      } else {
+        resolve();
+      }
+    }
+
+    function onResponse() {
+      clearTimeout(timeout);
+      if (chrome.runtime.lastError) {
+        chrome.scripting.executeScript(
+          {
+            target: { tabId: activeTab.id! },
+            files: ["contentScript.js"],
+          },
+          onInjectionResult
+        );
+      } else {
+        resolve();
+      }
+    }
+
+    chrome.tabs.sendMessage(
+      activeTab.id!,
+      { action: ContentScriptMessageNames.ping },
+      onResponse
+    );
+
+    timeout = setTimeout(
+      reject,
+      5_000,
+      new ResponseTimeoutError("Waited too long for response")
+    );
+  }
+
+  return new Promise(handler);
+}
+
 async function getActiveContent() {
   const activeTab = await getActiveTab();
+
+  await ensureTabIsReady(activeTab);
 
   const content = await sendMessageAndGetResponse<string>(activeTab, {
     action: ContentScriptMessageNames.extract_content,

@@ -237,6 +237,12 @@ function onMessage(
     if (largestArticle) {
       optimizeArticle(largestArticle);
     }
+    return;
+  }
+
+  if (message.action === ContentScriptMessageNames.ping) {
+    sendResponse({});
+    return;
   }
 
   if (message.action === ContentScriptMessageNames.extract_content) {
