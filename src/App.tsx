@@ -1,4 +1,5 @@
 import {
+  ClipboardEvent,
   FormEvent,
   KeyboardEvent,
   useCallback,
@@ -7,12 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
-import {
-  KnownError,
-  MessageSendError,
-  NoTabError,
-  ResponseTimeoutError,
-} from "./consts/error";
+import { KnownError, NoTabError } from "./consts/error";
 import {
   QAndAActionsNames,
   QAndAReducer,
@@ -34,6 +30,8 @@ import {
   LoadingBubble,
 } from "./components/messages";
 import { getAI } from "./utils/aiSource";
+import { sendMessageAndGetResponse } from "./utils/sendMessageAndGetResponse";
+import { ensureContentScriptIsReadyInTab } from "./utils/ensureTabReadiness";
 
 function getActiveTab(): Promise<chrome.tabs.Tab> {
   function promiseHandler(
@@ -56,90 +54,12 @@ function getActiveTab(): Promise<chrome.tabs.Tab> {
   return new Promise(promiseHandler);
 }
 
-function sendMessageAndGetResponse<T>(
-  activeTab: chrome.tabs.Tab,
-  message: Record<string, any>
-) {
-  function handler(
-    resolve: (value: T) => void,
-    reject: (error: KnownError) => void
-  ) {
-    let timeout: number | undefined;
-
-    function onResponse(response: T) {
-      clearTimeout(timeout);
-      if (chrome.runtime.lastError) {
-        console.log("last errorr", chrome.runtime.lastError);
-        reject(new MessageSendError("Error sending message"));
-      } else {
-        resolve(response);
-      }
-    }
-
-    chrome.tabs.sendMessage(activeTab.id!, message, onResponse);
-    timeout = setTimeout(
-      reject,
-      5_000,
-      new ResponseTimeoutError("Waited too long for response")
-    );
-  }
-
-  return new Promise(handler);
-}
-
-function ensureTabIsReady(activeTab: chrome.tabs.Tab) {
-  function handler(
-    resolve: (value: void) => void,
-    reject: (error: KnownError) => void
-  ) {
-    let timeout: number | undefined;
-
-    function onInjectionResult(
-      _results: chrome.scripting.InjectionResult<any>[]
-    ) {
-      if (chrome.runtime.lastError) {
-        console.log("last error", chrome.runtime.lastError);
-        reject(new MessageSendError("Error sending message"));
-      } else {
-        resolve();
-      }
-    }
-
-    function onResponse() {
-      clearTimeout(timeout);
-      if (chrome.runtime.lastError) {
-        chrome.scripting.executeScript(
-          {
-            target: { tabId: activeTab.id! },
-            files: ["contentScript.js"],
-          },
-          onInjectionResult
-        );
-      } else {
-        resolve();
-      }
-    }
-
-    chrome.tabs.sendMessage(
-      activeTab.id!,
-      { action: ContentScriptMessageNames.ping },
-      onResponse
-    );
-
-    timeout = setTimeout(
-      reject,
-      5_000,
-      new ResponseTimeoutError("Waited too long for response")
-    );
-  }
-
-  return new Promise(handler);
-}
-
 async function getActiveContent() {
   const activeTab = await getActiveTab();
 
-  await ensureTabIsReady(activeTab);
+  await ensureContentScriptIsReadyInTab(activeTab);
+
+  console.log("tab is ready");
 
   const content = await sendMessageAndGetResponse<string>(activeTab, {
     action: ContentScriptMessageNames.extract_content,
@@ -279,6 +199,30 @@ function App() {
     return cleanup;
   }, []);
 
+  const onPaste = useCallback(function onPaste(
+    event: ClipboardEvent<HTMLDivElement>
+  ) {
+    event.preventDefault();
+    const text = event.clipboardData.getData("text/plain");
+    const selection = window.getSelection();
+
+    if (!selection || !selection.rangeCount) {
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    range.deleteContents();
+    range.insertNode(document.createTextNode(text));
+
+    range.setStartAfter(range.endContainer);
+    range.collapse(true);
+
+    dispatch({
+      action: QAndAActionsNames.update_question,
+      payload: divRef.current?.textContent || "",
+    });
+  }, []);
+
   return (
     <div className="chat-screen">
       <div className="chat-bubbles">
@@ -303,6 +247,7 @@ function App() {
           ref={divRef}
           contentEditable={!loading}
           onInput={onInput}
+          onPaste={onPaste}
           suppressContentEditableWarning
           onKeyDown={onKeyDown}
           className="chat-textbox"

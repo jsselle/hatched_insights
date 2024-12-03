@@ -1,5 +1,6 @@
 import { ContentScriptMessageNames } from "../contentScript/messages";
 import { getAI } from "../utils/aiSource";
+import { ensureContentScriptIsReadyInTab } from "../utils/ensureTabReadiness";
 import { PortNames, TabChangedAction, TabListenerActionNames } from "./types";
 
 function setUpUIUX() {
@@ -39,19 +40,25 @@ function onInstalled() {
 
 chrome.runtime.onInstalled.addListener(onInstalled);
 
+async function articleOptimizer(tab: chrome.tabs.Tab) {
+  await ensureContentScriptIsReadyInTab(tab);
+
+  chrome.scripting.insertCSS({
+    target: { tabId: tab.id! },
+    files: ["static/animations.css"],
+  });
+
+  chrome.tabs.sendMessage(tab.id!, {
+    action: ContentScriptMessageNames.optimize_article,
+  });
+}
+
 function onContextMenuClicks(
   info: chrome.contextMenus.OnClickData,
   tab?: chrome.tabs.Tab
 ) {
   if (tab && tab.id && info.menuItemId === "optimize-article") {
-    chrome.scripting.insertCSS({
-      target: { tabId: tab.id },
-      files: ["static/animations.css"],
-    });
-
-    chrome.tabs.sendMessage(tab.id, {
-      action: ContentScriptMessageNames.optimize_article,
-    });
+    articleOptimizer(tab).catch(console.error);
   }
 }
 
